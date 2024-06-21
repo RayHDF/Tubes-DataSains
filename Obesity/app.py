@@ -21,7 +21,7 @@ input_labels = [
     'Height (m)',
     'Weight (kg)',
     'Has a family member suffered or suffers from overweight?	',
-    'Do you eat high caloric food frequently? (1-3)',
+    'Do you eat high caloric food frequently?',
     'Do you usually eat vegetables in your meals? (1-4)',
     'How many main meals do you have daily?',
     'Do you eat any food between meals?',
