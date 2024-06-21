@@ -3,7 +3,10 @@ import pandas as pd
 import pickle
 
 # Load the model
-model = pickle.load(open('Obesity\knn_model.pkl', 'rb'))
+model = pickle.load(open('Obesity/svc_model.pkl', 'rb'))
+
+# Load the scaler
+scaler = pickle.load(open('Obesity/scaler.pkl', 'rb'))
 
 window = tk.Tk()
 window.title("Obesity Classification")
@@ -47,7 +50,7 @@ inputs = {
     'FAF': ('entry', None),
     'TUE': ('entry', None),
     'CALC': ('dropdown', ['No', 'Sometimes', 'Frequently', 'Always']),
-    'MTRANS': ('dropdown', ['Bike', 'Motorbike', 'Public Transporation', 'Automobile', 'Walking'])
+    'MTRANS': ('dropdown', ['Bike', 'Motorbike', 'PublicTransportation', 'Automobile', 'Walking'])
 }
 
 input_vars = {}
@@ -68,7 +71,7 @@ for label_text, key in zip(input_labels, inputs.keys()):
 
 def map_transportation(value):
     mapping = {
-        'Public Transportation': 3,
+        'PublicTransportation': 3,
         'Automobile': 0,
         'Walking': 4,
         'Motorbike': 2,
@@ -126,7 +129,11 @@ def predict():
     df['CALC'] = df['CALC'].apply(map_calc)
     df['MTRANS'] = df['MTRANS'].apply(map_transportation)
 
+    # Scale df
+    df = pd.DataFrame(scaler.transform(df), columns=df.columns)
+
     prediction = model.predict(df)
+
     
     prediction = map_pred(prediction[0])
 
