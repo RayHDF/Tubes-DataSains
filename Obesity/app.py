@@ -5,8 +5,8 @@ import pickle
 # Load the model
 model = pickle.load(open('Obesity/svc_model.pkl', 'rb'))
 
-# Load the scaler
-scaler = pickle.load(open('Obesity/scaler.pkl', 'rb'))
+# # Load the scaler
+# scaler = pickle.load(open('Obesity/scaler.pkl', 'rb'))
 
 window = tk.Tk()
 window.title("Obesity Classification")
@@ -130,7 +130,7 @@ def predict():
     df['MTRANS'] = df['MTRANS'].apply(map_transportation)
 
     # Scale df
-    df = pd.DataFrame(scaler.transform(df), columns=df.columns)
+    # df = pd.DataFrame(scaler.transform(df), columns=df.columns)
 
     prediction = model.predict(df)
 
