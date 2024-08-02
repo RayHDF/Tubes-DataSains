@@ -2,151 +2,107 @@ import tkinter as tk
 import pandas as pd
 import pickle
 
+from sklearn.ensemble import RandomForestClassifier
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
+
 # Load the model
-model = pickle.load(open('Obesity/svc_model.pkl', 'rb'))
+model = pickle.load(open('Obesity/rf_model.pkl', 'rb'))
+
+preprocessor = pickle.load(open('Obesity/fitted_preprocessor.pkl', 'rb'))
 
 # # Load the scaler
 # scaler = pickle.load(open('Obesity/scaler.pkl', 'rb'))
 
 window = tk.Tk()
-window.title("Obesity Classification")
-window.geometry("800x1000")
+window.title("Klasifikasi")
+window.geometry("400x400")
 
-label = tk.Label(window, text="Obesity Classification", font=("Arial", 16))
+label = tk.Label(window, text="Klasifikasi", font=("Arial", 16))
 label.pack()
 
 input_labels = [
     'Gender',
     'Age',
-    'Height (m)',
-    'Weight (kg)',
-    'Has a family member suffered or suffers from overweight?	',
-    'Do you eat high caloric food frequently?',
-    'Do you usually eat vegetables in your meals? (1-4)',
-    'How many main meals do you have daily?',
-    'Do you eat any food between meals?',
-    'Do you smoke?',
-    'How much water do you drink daily? (1-3 Liters)',
-    'Do you monitor the calories you eat daily?',
-    'How often do you have physical activity? (0-3)',
-    'How much time do you use technological devices such as cell phone, videogames, television, computer and others? (0-2)',
-    'How often do you drink alcohol?',
-    'Which transportation do you usually use?'
+    'Siblings/Spouses Aboard',
+    'Parents/Children Aboard',
+    'Fare',
+    'Embarked from',
 ]
 
 inputs = {
-    'Gender': ('dropdown',['Male', 'Female']),
+    'Sex': ('dropdown',['male', 'female']),
     'Age': ('entry', None),
-    'Height': ('entry', None),
-    'Weight': ('entry', None),
-    'family_history_with_overweight': ('dropdown', ['Yes', 'No']),
-    'FAVC': ('dropdown', ['Yes', 'No']),
-    'FCVC': ('entry', None),
-    'NCP': ('entry', None),
-    'CAEC': ('dropdown', ['No', 'Sometimes', 'Frequently', 'Always']),
-    'SMOKE': ('dropdown', ['Yes', 'No']),
-    'CH2O': ('entry', None),
-    'SCC': ('dropdown', ['Yes', 'No']),
-    'FAF': ('entry', None),
-    'TUE': ('entry', None),
-    'CALC': ('dropdown', ['No', 'Sometimes', 'Frequently', 'Always']),
-    'MTRANS': ('dropdown', ['Bike', 'Motorbike', 'PublicTransportation', 'Automobile', 'Walking'])
+    'SibSp': ('entry', None),
+    'Parch': ('entry', None),
+    'Fare': ('entry', None),
+    'Embarked': ('dropdown', ['S', 'C', 'Q']),
 }
 
 input_vars = {}
 
 for label_text, key in zip(input_labels, inputs.keys()):
-    tk.Label(window, text=label_text).pack()
+    # For Label, use anchor='w' to align text to the left and pack with anchor='w' to align the widget to the left
+    tk.Label(window, text=label_text, anchor='w').pack(fill='x', anchor='w')
     input_type, options = inputs[key]
     if input_type == 'dropdown':
         var = tk.StringVar(window)
         var.set(options[0])  # default value
-        tk.OptionMenu(window, var, *options).pack()
+        # Align OptionMenu to the left
+        tk.OptionMenu(window, var, *options).pack(anchor='w')
     elif input_type == 'entry':
         var = tk.StringVar(window)
-        tk.Entry(window, textvariable=var).pack()
+        # For Entry, use justify='left' to align text to the left and pack with anchor='w' to align the widget to the left
+        tk.Entry(window, textvariable=var, justify='left').pack(anchor='w')
     input_vars[key] = var
 
 
 
-def map_transportation(value):
-    mapping = {
-        'PublicTransportation': 3,
-        'Automobile': 0,
-        'Walking': 4,
-        'Motorbike': 2,
-        'Bike': 1
-    }
-    return mapping.get(value, value)
+numerical_features = ['Age', 'SibSp', 'Parch', 'Fare']
+numerical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='median')),
+    ('scaler', StandardScaler())
+])
 
-def map_calc(value):
-    mapping = {
-        'Sometimes': 2,
-        'No': 3,
-        'Frequently': 1,
-        'Always': 0
-    }
-    return mapping.get(value, value)
 
-def map_scc(value):
-    mapping = {
-        'No': 0,
-        'Yes': 1
-    }
-    return mapping.get(value, value)
 
-def map_gender(value):
-    mapping = {
-        'Male': 1,
-        'Female': 0
-    }
-    return mapping.get(value, value)
+def transform_input(df):
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', numerical_transformer, numerical_features)
+        ])
+    return preprocessor.fit_transform(df)
 
-def map_pred(value):
-    mapping = {
-        2: 'Obesity_Type_I',
-        4: 'Obesity_Type_III',
-        3: 'Obesity_Type_II',
-        5: 'Overweight_Level_I',
-        6: 'Overweight_Level_II',
-        1: 'Normal_Weight',
-        0: 'Insufficient_Weight'
-    }
-    return mapping.get(value, value)
+
+def mapper(df):
+    # Create 'Gender_female' and 'Gender_male' columns
+    df['Sex_female'] = df['Sex'].apply(lambda x: 1 if x == 'female' else 0)
+    df['Sex_male'] = df['Sex'].apply(lambda x: 1 if x == 'male' else 0)
+    return df
+
 
 
 def predict():
     input_data = {key: [var.get()] for key, var in input_vars.items()}
     df = pd.DataFrame(input_data)
 
-
-    df['Gender'] = df['Gender'].apply(map_gender)
-    df['family_history_with_overweight'] = df['family_history_with_overweight'].apply(map_scc)
-    df['FAVC'] = df['FAVC'].apply(map_scc)
-    df['CAEC'] = df['CAEC'].apply(map_calc)
-    df['SMOKE'] = df['SMOKE'].apply(map_scc)
-    df['SCC'] = df['SCC'].apply(map_scc)
-    df['CALC'] = df['CALC'].apply(map_calc)
-    df['MTRANS'] = df['MTRANS'].apply(map_transportation)
-
-    # Scale df
-    # df = pd.DataFrame(scaler.transform(df), columns=df.columns)
+    # Apply preprocessor to df
+    df = preprocessor.transform(df)
 
     prediction = model.predict(df)
 
-    
-    prediction = map_pred(prediction[0])
-
-    print(df)
-    print(prediction)
-
-    prediction_label.config(text=str(prediction))
-    
+    # Convert prediction to string and update the prediction_label
+    prediction_text = f"Prediction: {prediction[0]}"
+    prediction_label.config(text=prediction_text)
 
 button = tk.Button(window, text="Submit", command=predict)
-button.pack()
+button.pack(anchor='w')
 
-prediction_label = tk.Label(window, text="")
-prediction_label.pack()
-
+prediction_label = tk.Label(window, text="", anchor='w')
+prediction_label.pack(fill='x', anchor='w')
 window.mainloop()
